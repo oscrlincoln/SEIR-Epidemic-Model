@@ -42,7 +42,7 @@ class Agent:
             self.__y += dy # update y coordinate
             lattice_grid[self.__y][self.__x] = self  # move to new position
         
-    def update_compartment(self, sigma, gamma):
+    def update_compartment(self, sigma, gamma, p_reinfection=0.0):
         if self.__compartment == 'E':
             # Exposed individuals become infected with probability sigma
             if random.random() < sigma:
@@ -51,6 +51,10 @@ class Agent:
             # Infected individuals recover with probability gamma
             if random.random() < gamma:
                 self.__compartment = 'R'
+        elif self.__compartment == 'R':
+            # recovered individuals can be reinfected with probability p_reinfection
+            if random.random() < p_reinfection:
+                self.__compartment = 'S'
 
     def expose(self):
 
@@ -100,12 +104,12 @@ class Lattice:
         return self.__size
     
 class Simulation:
-    def __init__(self, lattice_size, num_agents, beta, sigma, gamma, p_exposed=0.05):
+    def __init__(self, lattice_size, num_agents, beta, sigma, gamma, p_exposed=0.05, p_reinfection=0.0):
         if not isinstance(lattice_size, int) or lattice_size <= 0:
             raise ValueError("Lattice size must be a positive integer")
         if not isinstance(num_agents, int) or num_agents <= 0:
             raise ValueError("Number of agents must be a positive integer")
-        if not all(isinstance(p, (int, float)) for p in [beta, sigma, gamma, p_exposed]):
+        if not all(isinstance(p, (int, float)) for p in [beta, sigma, gamma, p_exposed, p_reinfection]):
             raise TypeError("Rate parameters and probability must be numerical values")
 
         self.__lattice = Lattice(lattice_size)
@@ -114,6 +118,7 @@ class Simulation:
         self.__sigma = sigma
         self.__gamma = gamma
         self.__p_exposed = p_exposed
+        self.__p_reinfection = p_reinfection
         self.__history = {'S': [], 'E': [], 'I': [], 'R': []}
         
         # randomly place agents on the lattice and assign them to the susceptible compartment
@@ -157,15 +162,22 @@ class Simulation:
                         neighbour.expose()
 
             # update the agents compartment based on the incubation and recovery rates
-            agent.update_compartment(self.__sigma, self.__gamma)
+            agent.update_compartment(self.__sigma, self.__gamma, self.__p_reinfection)
    
     def run(self, num_steps):
         self.__count_compartments()  # record initial state
-        for _ in range(num_steps):
+        for step in range(num_steps):
+
+            # perform one Monte Carlo step
             self.__run_step()
 
             # record the compartment counts after each step
             self.__count_compartments()
+
+            # print progress every 100 steps so the user can see that the simulation is running
+            if step % 100 == 0:
+                print(f"Completed {step}/{num_steps} steps")
+        print(f"Simulation complete: {num_steps} steps finished")
     def plot(self, save_path=None):
         fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -236,6 +248,7 @@ if __name__ == "__main__":
     parser.add_argument("--sigma", type=float, default=0.1, help="Incubation rate per MCS")
     parser.add_argument("--gamma", type=float, default=0.005, help="Recovery rate per MCS")
     parser.add_argument("--p_exposed", type=float, default=0.05, help="Initial fraction of exposed agents")
+    parser.add_argument("--p_reinfection", type=float, default=0.0, help="Probability of reinfection per MCS")
     
     # simulation parameters
     parser.add_argument("--num_steps", type=int, default=2000, help="Number of Monte Carlo steps")
@@ -247,7 +260,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # instantiate and run simulation - all validation handled by classes
-    sim = Simulation(args.lattice_size, args.num_agents, args.beta, args.sigma, args.gamma, args.p_exposed)
+    sim = Simulation(args.lattice_size, args.num_agents, args.beta, args.sigma, args.gamma, args.p_exposed, args.p_reinfection)
     sim.run(args.num_steps)
     sim.plot(save_path=args.save)
     sim.plot_lattice(save_path=args.save_lattice)
