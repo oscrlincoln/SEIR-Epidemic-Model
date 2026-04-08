@@ -202,7 +202,11 @@ class Simulation:
         for compartment, coords in positions.items():
             if coords:
                 xs, ys = zip(*coords)
-                ax.scatter(xs, ys, color=c_map[compartment], label=compartment, s=20)
+                ax.scatter(xs, ys, color=c_map[compartment], s=20)
+                
+        # ensures all compartments appear in the legend even if they have no agents in the final lattice state
+        for compartment, color in c_map.items():
+            ax.scatter([], [], color=color, label=compartment, s=20)
         ax.legend(loc='upper right')
 
         # Setting plot attributes such as title and limits
@@ -224,7 +228,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Monte Carlo SEIR simulation")
     
     # lattice and agent parameters
-    parser.add_argument("--lattice_size", type=int, default=50, help="Size of the lattice grid")
+    parser.add_argument("--lattice_size", type=int, default=100, help="Size of the lattice grid")
     parser.add_argument("--num_agents", type=int, default=250, help="Number of agents")
     
     # disease parameters
