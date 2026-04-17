@@ -25,12 +25,10 @@ class SEIRModel:
         return [dsdt, dedt, didt, drdt]
     
     # public method to solve the SEIR model ODEs given initial conditions and time span
-    def solve(self, S0, E0, I0, R0, t_span, num_points=1000):
+    def solve(self, S0, E0, I0, R0, t_span, num_points):
         # Validates initial conditions before solving the ODE
-        if not all(isinstance(x, (int, float)) for x in [S0, E0, I0, R0]):
-            raise TypeError("Initial conditions must be numerical values")
-        if any(x < 0 for x in [S0, E0, I0, R0]):
-            raise ValueError("Initial conditions must be non-negative")
+        if not all(isinstance(x, (int, float)) and x >= 0 for x in [S0, E0, I0, R0]):
+            raise TypeError("Initial conditions must be non-negative numerical values")
         # Initial conditions should sum to 1
         if not abs(S0 + E0 + I0 + R0 - 1) < 1e-9: # 1e-9 allows for floating-point precision issues
             raise ValueError("Initial conditions must sum to 1 (representing fractions of the population)")
@@ -85,13 +83,16 @@ if __name__ == "__main__":
     parser.add_argument("--I0", type=float, default=0.0, help="Initial fraction of infected population")
     parser.add_argument("--R0", type=float, default=0.0, help="Initial fraction of recovered population")
 
+    # Number of points that should be evaluated within the time range (e.g. 1000 points within a time range of 100 is 10 points per second)
+    parser.add_argument("--num_points", type=int, default=1000, help="Number of time points to evaluate within the time span")
+
     # Simulation time parameters and save path for the figure
     parser.add_argument("--t_end", type=float, default=100.0, help="End time for simulation")
     parser.add_argument("--save", type=str, default=None, help="File path to save figure")
 
     args = parser.parse_args()
 
-    # Createf the SEIRModel with the specified parameters, solve the ODEs, and plot the results
+    # Create the SEIRModel with the specified parameters, solve the ODEs, and plot the results
     model = SEIRModel(args.beta, args.sigma, args.gamma)
-    t, y = model.solve(args.S0, args.E0, args.I0, args.R0, (0, args.t_end))
+    t, y = model.solve(args.S0, args.E0, args.I0, args.R0, (0, args.t_end), args.num_points)
     model.plot(t, y, save_path=args.save)
