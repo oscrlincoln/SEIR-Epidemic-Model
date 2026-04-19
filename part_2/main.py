@@ -22,11 +22,18 @@ if __name__ == "__main__":
     # simulation parameters
     parser.add_argument("--num_steps", type=int, default=2000, help="Number of Monte Carlo steps")
     
+    # specify the random generator seed
+    parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
+
     # output
     parser.add_argument("--save", type=str, default=None, help="Path to save population plot")
     parser.add_argument("--save_lattice", type=str, default=None, help="Path to save lattice plot")
     
     args = parser.parse_args()
+
+    # implement the seed
+    if args.seed is not None:
+        random.seed(args.seed)
     
     # instantiate and run simulation - all validation handled by classes
     sim = simul.Simulation(args.lattice_size, args.num_agents, args.beta, args.sigma, args.gamma, args.p_exposed, args.p_reinfection, args.num_superspreaders, args.spread_radius)
